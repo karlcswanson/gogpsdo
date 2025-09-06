@@ -11,6 +11,7 @@ import (
     "sync"
     "syscall"
     "time"
+    "flag"
 
     "github.com/tarm/serial"
 )
@@ -314,25 +315,16 @@ func (g *GPSDOChronySock) Run() error {
 }
 
 func main() {
-    if len(os.Args) < 2 {
-        fmt.Printf("Usage: %s <serial_port> [sock_path]\n", os.Args[0])
-        fmt.Printf("Example: %s /dev/ttyAMA0 /var/run/chrony/gpsdo.sock\n", os.Args[0])
-        os.Exit(1)
-    }
-
-    serialPort := os.Args[1]
-    sockPath := "/var/run/chrony/gpsdo.sock"
-
-    if len(os.Args) > 2 {
-        sockPath = os.Args[2]
-    }
+    serialPort := flag.String("port", "/dev/ttyAMA0", "TOD TTY Input")
+    sockPath := flag.String("sock", "/var/run/chrony/gpsdo.sock", "Chrony SOCK refclock path")
+    flag.Parse() 
 
     // Check if serial port exists
-    if _, err := os.Stat(serialPort); os.IsNotExist(err) {
-        log.Fatalf("Serial port %s does not exist", serialPort)
+    if _, err := os.Stat(*serialPort); os.IsNotExist(err) {
+        log.Fatalf("Serial port %s does not exist", *serialPort)
     }
 
-    bridge := NewGPSDOChronySock(serialPort, sockPath)
+    bridge := NewGPSDOChronySock(*serialPort, *sockPath)
 
     if err := bridge.Run(); err != nil {
         log.Fatalf("Bridge error: %v", err)

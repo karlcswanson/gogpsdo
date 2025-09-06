@@ -35,3 +35,7 @@ source 0 - assert 1757196687.001070380, sequence: 74528 - clear  0.000000000, se
 source 0 - assert 1757196688.001069746, sequence: 74529 - clear  0.000000000, sequence: 0
 source 0 - assert 1757196689.001069279, sequence: 74530 - clear  0.000000000, sequence: 0
 ```
+
+
+### Chrony SOCK
+https://gitlab.com/chrony/chrony/-/blob/master/refclock_sock.c
