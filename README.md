@@ -14,7 +14,6 @@ refclock PPS /dev/pps0 refid PPSG lock GPSD poll 2
 `/boot/firmware/config.txt`
 
 
-
 ```
 # RTC
 dtparam=i2c_vc=on
