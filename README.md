@@ -1,5 +1,4 @@
-# gogpsdo - Chrony Driver for HP Z3805A GPSDO
-
+# gogpsdo - HP Z3805A chrony daemon
 
 ## Chrony Config Notes
 ```
@@ -10,7 +9,7 @@ refclock PHC /dev/ptp0:extpps poll 0 refid PPSG lock GPSD
 refclock PPS /dev/pps0 refid PPSG lock GPSD poll 2
 ```
 
-## CM4 PPS/PHC & RTC Config
+## CM4 PPS/PHC/RTC Config
 `/boot/firmware/config.txt`
 
 
