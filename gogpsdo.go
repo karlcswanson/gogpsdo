@@ -14,6 +14,7 @@ import (
     "flag"
 
     "github.com/tarm/serial"
+    "golang.org/x/sys/unix"
 )
 
 // GPSDOStatus represents the GPSDO operational state
@@ -138,13 +139,12 @@ func (g *GPSDOChronySock) parseZ3805APacket(data []byte) *Z3805AData {
 
 
 type sockSample struct {
-    Sec    int64   // timeval.tv_sec
-    Usec   int64   // timeval.tv_usec
-    Offset float64 // double
-    Pulse  int32   // int
-    Leap   int32   // int
-    Pad    int32   // int (ignored)
-    Magic  int32   // int (must be 0x534f434b)
+    Tv     unix.Timeval
+    Offset float64
+    Pulse  int32
+    Leap   int32
+    Pad    int32
+    Magic  int32
 }
 
 func (g *GPSDOChronySock) sendChronySample(data *Z3805AData) {
@@ -152,23 +152,14 @@ func (g *GPSDOChronySock) sendChronySample(data *Z3805AData) {
         return
     }
 
-    // Calculate offset: GPSDO time - system time (in seconds)
-    // For a GPSDO, this is typically 0, unless you want to report a measured offset.
-    offset := 0.0
-
-    // Pulse: 0 for normal sample, 1 for PPS (set to 0 for standard time sample)
-    pulse := int32(0)
-
-    // Leap: 0 = normal, 1 = insert leap second, 2 = delete leap second
-    leap := int32(0)
-
-    // Compose the struct
     sample := sockSample{
-        Sec:    data.Timestamp.Unix(),
-        Usec:   int64(data.Timestamp.Nanosecond() / 1000),
-        Offset: offset,
-        Pulse:  pulse,
-        Leap:   leap,
+        Tv: unix.Timeval{
+            Sec: data.Timestamp.Unix(),
+            Usec: int64(data.Timestamp.Nanosecond() / 1000),
+        },
+        Offset: 0,
+        Pulse:  0,
+        Leap:   0,
         Pad:    0,
         Magic:  0x534f434b,
     }
