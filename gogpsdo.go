@@ -162,11 +162,14 @@ func (g *GPSDOChronySock) sendChronySample(data *Z3805AData) {
 		Pad:    0,
 		Magic:  0x534f434b,
 	}
-	clockMessage <- sample
-
-	log.Printf("Chrony binary sample sent: GPS=%04d-%03d %02d:%02d:%02d UTC, Status=%s, Leap=%d",
-		data.Year, data.DayOfYear, data.Hour, data.Minute, data.Second,
-		data.Status.String(), data.LeapSeconds)
+	select {
+	case clockMessage <- sample:
+		log.Printf("Chrony binary sample sent: GPS=%04d-%03d %02d:%02d:%02d UTC, Status=%s, Leap=%d",
+			data.Year, data.DayOfYear, data.Hour, data.Minute, data.Second,
+			data.Status.String(), data.LeapSeconds)
+	default:
+		log.Printf("Chrony sample dropped: channel full or chrony offline")
+	}
 }
 
 func (g *GPSDOChronySock) Run() error {
@@ -282,32 +285,53 @@ func (g *GPSDOChronySock) Run() error {
 	return nil
 }
 
-func sockCommander(sockFile string) {
-	fmt.Println(sockFile)
+type ChronyClient struct {
+	sockFile string
+}
 
-	conn, err := net.Dial("unixgram", sockFile)
-	if err != nil {
-		log.Printf("Error connecting to Chrony socket: %s", sockFile)
-	}
-	defer conn.Close()
+func NewChronyClient(sockFile string) *ChronyClient {
+	return &ChronyClient{sockFile: sockFile}
+}
+
+func (c *ChronyClient) Run(clockMessage <-chan sockSample) {
+	var conn net.Conn
+	var err error
 
 	for {
+		// Try to connect if not connected
+		for conn == nil {
+			conn, err = net.Dial("unixgram", c.sockFile)
+			if err != nil {
+				log.Printf("Chrony socket unavailable (%s), retrying in 2s...", err)
+				time.Sleep(2 * time.Second)
+			} else {
+				log.Printf("Connected to Chrony socket: %s", c.sockFile)
+			}
+		}
+
+		// Wait for a sample and try to send it
 		sample := <-clockMessage
-		sendSample(conn, sample)
+		if err := c.sendSample(conn, sample); err != nil {
+			log.Printf("Chrony socket error: %v, reconnecting...", err)
+			conn.Close()
+			conn = nil
+		}
 	}
 }
 
-func sendSample(conn net.Conn, sample sockSample) {
+func (c *ChronyClient) sendSample(conn net.Conn, sample sockSample) error {
 	buf := new(bytes.Buffer)
 	if err := binary.Write(buf, binary.LittleEndian, sample); err != nil {
 		log.Printf("Failed to encode sample: %v", err)
-		return
+		return err
 	}
 
 	_, err := conn.Write(buf.Bytes())
 	if err != nil {
-		log.Printf("Error writing to chrony")
+		log.Printf("Error writing to chrony: %v", err)
+		return err
 	}
+	return nil
 }
 
 func main() {
@@ -315,15 +339,15 @@ func main() {
 	sockPath := flag.String("sock", "/var/run/chrony/gpsdo.sock", "Chrony SOCK refclock path")
 	flag.Parse()
 
-	// Check if serial port exists
 	if _, err := os.Stat(*serialPort); os.IsNotExist(err) {
 		log.Fatalf("Serial port %s does not exist", *serialPort)
 	}
-	go sockCommander(*sockPath)
-	bridge := NewGPSDOChronySock(*serialPort, *sockPath)
 
+	chronyClient := NewChronyClient(*sockPath)
+	go chronyClient.Run(clockMessage)
+
+	bridge := NewGPSDOChronySock(*serialPort, *sockPath)
 	if err := bridge.Run(); err != nil {
 		log.Fatalf("Bridge error: %v", err)
 	}
-
 }
