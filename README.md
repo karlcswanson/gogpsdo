@@ -1,7 +1,7 @@
 # gogpsdo - HP Z3805A chrony daemon
 `gogpsdo` is a small translator for HP Z3805A GPS disciplined oscillators. Time-of-Day bytes from the GPSDO are parsed and sent to `chronyd` via the Unix domain socket driver. Chrony uses the ToD signal from `gogpsdo` along with the 1PPS signal from the GPSDO to discipline the system clock and NTP server.
 
-For evaluation and development, the output was compared with a Nokia FYGM GNSS Receiver. This device contains a ublox LEA-M8T receiver.  It was configured as a secondary source within chrony.
+For evaluation and development, the output was compared with a Nokia FYGM GNSS Receiver. This device contains a ublox LEA-M8T receiver. It was configured as a secondary source within chrony.
 
 
 ## Connecting the HP Z3805a to CM4
@@ -15,7 +15,7 @@ The CM4 has 3v3 logic. I used a MAX232 breakout board to convert from RS232 to 3
 For PPS, a simple voltage divider was used to drop the 5V to CM4 logic levels.
 
 
-## CM4 GPIO Connections
+### CM4 GPIO Connections
 * GPIO4 - TXD3
 * GPIO5 - RXD3
 * GPIO14 - TXD0
@@ -26,6 +26,8 @@ For PPS, a simple voltage divider was used to drop the 5V to CM4 logic levels.
 
 
 ## CM4 PPS/PHC/RTC Config
+Configure GPIO and overlays for CM4
+
 `/boot/firmware/config.txt`
 ```
 # UART
@@ -74,6 +76,16 @@ This is what hosts the unix socket within chronyd
 
 https://gitlab.com/chrony/chrony/-/blob/master/refclock_sock.c
 
+## Building and run gogpsdo
+Build
+```sh
+go build -o gogpsdo gogpsdo.go
+```
+
+Run
+```sh
+sudo ./gogpsdo
+```
 
 ### SCPI Command Reference
 Set antenna cable delay
@@ -111,15 +123,26 @@ HEALTH MONITOR ......................................................... [ OK ]
 Self Test: OK    Int Pwr: OK   Oven Pwr: OK   OCXO: OK   EFC: OK   GPS Rcv: OK 
 ```
 
-
 ## PTP
-The PHC driver can not be shared between `phc2sys` and chrony. The PPS signal from the GPSDO can be split electrically and sent through the PPS driver for chrony and through the PHC on the NIC for PTP. I'd imagine this is not ideal.
+The PHC driver can not be shared between `phc2sys` and chrony. The PPS signal from the GPSDO can be split electrically and sent through the PPS driver for chrony and through the PHC on the NIC for PTP. I'd imagine this is not ideal. Waiting to get a IEEE1588 compatible switch before evaluating PTP more.
 
 PTP Commands
 ```
 sudo phc2sys -s CLOCK_REALTIME -c eth0 -O 0 --step_threshold=0.5 -m
 sudo ptp4l -i eth0 -f /etc/linuxptp/ptp4l.conf -m -l 7
 ```
+
+## Monitoring
+Telegraf can be configured to monitor chronyd. This data is sent to a VictoriaMetrics instance where it can be viewed with Grafana.
+
+```toml
+[[inputs.chrony]]
+server = "udp://127.0.0.1:323"
+metrics = ["activity", "tracking", "sources", "sourcestats"]
+socket_group = "_chrony"
+socket_perms = "0660"
+```
+
 
 ## Z3805a vs UBlox PPS
 ![HP Z3805a PPS](media/hp-z3805a-pps.png)
