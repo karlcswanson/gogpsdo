@@ -1,10 +1,10 @@
 # gogpsdo - HP Z3805A chrony daemon
-
 `gogpsdo` is a small translator for HP Z3805A GPS disciplined oscillators. Time-of-Day bytes from the GPSDO are parsed and sent to `chronyd` via the Unix domain socket driver. Chrony uses the ToD signal from `gogpsdo` along with the 1PPS signal from the GPSDO to discipline the system clock and NTP server.
+
+For evaluation and development, the output was compared with a Nokia FYGM GNSS Receiver. This device contains a ublox LEA-M8T receiver.  It was configured as a secondary source within chrony.
 
 
 ## Connecting the HP Z3805a to CM4
-![PPS Signal](media/pps.png)
 The following connections need to be made to the CM4
 * Port 1 provides an interactive SCPI shell.
 * Port 2 provides Time-of-Day every two seconds.
@@ -13,6 +13,16 @@ The following connections need to be made to the CM4
 The CM4 has 3v3 logic. I used a MAX232 breakout board to convert from RS232 to 3v3 logic levels. Once connected to the correct pins, `gogpsdo` receives its ToD signal via `/dev/ttyAMA0`
 
 For PPS, a simple voltage divider was used to drop the 5V to CM4 logic levels.
+
+
+## CM4 GPIO Connections
+* GPIO4 - TXD3
+* GPIO5 - RXD3
+* GPIO14 - TXD0
+* GPIO15 - RXD0
+* GPIO18 - PPS0
+* GPIO21 - PPS1
+* SYNC_OUT - PHC
 
 
 ## CM4 PPS/PHC/RTC Config
@@ -105,12 +115,18 @@ Self Test: OK    Int Pwr: OK   Oven Pwr: OK   OCXO: OK   EFC: OK   GPS Rcv: OK
 ## PTP
 The PHC driver can not be shared between `phc2sys` and chrony. The PPS signal from the GPSDO can be split electrically and sent through the PPS driver for chrony and through the PHC on the NIC for PTP. I'd imagine this is not ideal.
 
-
-## PTP Commands
+PTP Commands
 ```
 sudo phc2sys -s CLOCK_REALTIME -c eth0 -O 0 --step_threshold=0.5 -m
 sudo ptp4l -i eth0 -f /etc/linuxptp/ptp4l.conf -m -l 7
 ```
+
+## Z3805a vs UBlox PPS
+![HP Z3805a PPS](media/hp-z3805a-pps.png)
+HP Z3805a PPS
+
+![HP Z3805a PPS](media/ublox-lea-m8t-pps.png)
+ublox LEA-M8T
 
 ### References
 * [Is This the World's Most Accurate NTP Server Hardware?](https://www.febo.com/pages/soekris/)
@@ -118,3 +134,4 @@ sudo ptp4l -i eth0 -f /etc/linuxptp/ptp4l.conf -m -l 7
 * [prc68.com - HP Z3805A Time & Frequency GPS Receiver](https://prc68.com/I/Z3805A.html)
 * [Jeff Geerling - PTP and IEEE-1588 hardware timestamping on the Raspberry Pi CM4](https://www.jeffgeerling.com/blog/2022/ptp-and-ieee-1588-hardware-timestamping-on-raspberry-pi-cm4)
 * [James Clark - rpi-cm4-ptp-guide](https://github.com/jclark/rpi-cm4-ptp-guide)
+* [John Miller - Nokia FYGM](https://wiki.millerjs.org/nokia_fygm)
