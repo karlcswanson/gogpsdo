@@ -1,0 +1,12 @@
+[Unit]
+Description=GPSDO to Chrony Bridge
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/home/pi/gogpsdo/gogpsdo
+Restart=on-failure
+User=root
+
+[Install]
+WantedBy=multi-user.target

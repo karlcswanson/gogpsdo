@@ -86,7 +86,7 @@ func (g *GPSDOChronySock) parseZ3805APacket(data []byte) *Z3805AData {
 	minute := int(data[7])*10 + int(data[8])
 	second := int(data[9])*10 + int(data[10])
 	leapSeconds := int(data[11])*10 + int(data[12])
-	statusVal := int(data[13])*10 + int(data[14])
+	statusVal := [2]byte{data[13], data[14]}
 
 	// Validate ranges
 	if year < 2000 || year > 2099 || dayOfYear < 1 || dayOfYear > 366 ||
@@ -97,11 +97,11 @@ func (g *GPSDOChronySock) parseZ3805APacket(data []byte) *Z3805AData {
 	// Convert status to enum per Z3805A documentation
 	var status GPSDOStatus
 	switch statusVal {
-	case 0:
+	case [2]byte{0x00, 0x00}:
 		status = GPSDOLocked // GPS Lock Mode
-	case 10:
+	case [2]byte{0x01, 0x00}:
 		status = GPSDOPowerUp // Power-Up Mode
-	case 100:
+	case [2]byte{0x10, 0x00}:
 		status = GPSDOHoldover // Holdover Mode
 	default:
 		status = GPSDOUnknown
