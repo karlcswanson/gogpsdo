@@ -144,6 +144,10 @@ socket_perms = "0660"
 ```
 
 
+## Hardware Pictures
+![HP Z3805a](media/gpsdo.jpg)
+![CM4](media/CM4.jpg)
+
 ## Z3805a vs UBlox PPS
 ![HP Z3805a PPS](media/hp-z3805a-pps.png)
 HP Z3805a PPS
