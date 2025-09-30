@@ -87,7 +87,23 @@ Run
 sudo ./gogpsdo
 ```
 
+There are a few command line flags for different serial ports and sockets.
+```sh
+pi@cm4:~/gogpsdo $ ./gogpsdo --help
+Usage of ./gogpsdo:
+  -port string
+        TOD TTY Input (default "/dev/ttyAMA0")
+  -sock string
+        Chrony SOCK refclock path (default "/var/run/chrony/gpsdo.sock")
+```
+
+
 ### SCPI Command Reference
+Port 1 on the Z3805A has an interactive SCPI shell. It can be accessed via screen.
+```sh
+pi@cm4:~/gogpsdo $ screen /dev/ttyUSB0 9600
+```
+
 Set antenna cable delay
 ```
 :GPSYSTEM:REFERENCE:ADELAY 19.5 NS
@@ -98,29 +114,27 @@ Get system status
 :SYSTEM:STATUS?
 ```
 ```
-------------------------------- Receiver Status -------------------------------
- 
-SYNCHRONIZATION ............................................. [ Outputs Valid ]
+SYNCHRONIZATION ............................ [ Outputs Valid/Reduced Accuracy ]
 SmartClock Mode ___________________________   Reference Outputs _______________
->> Locked to GPS                              TFOM     3             FFOM     0
-   Recovery                                   1PPS TI +25.3 ns relative to GPS
+>> Locked to GPS: stabilizing frequency       TFOM     3             FFOM     1
+   Recovery                                   1PPS TI -7.5 ns relative to GPS
    Holdover                                   HOLD THR 1.000 us
    Power-up                                   Holdover Uncertainty ____________
-                                              Predict  432.0 us/initial 24 hrs
-                                                
+                                              Predict  5.7 us/initial 24 hrs
+
 ACQUISITION ............................................ [ GPS 1PPS CLK Valid ]
 Satellite Status __________________________   Time ____________________________
-Tracking: 2        Not Tracking: 6            UTC      00:30:36     12 Feb 2006
-PRN  El  Az   SS   PRN  El  Az                1PPS CLK Synchronized to UTC
-  9  44 237  106     2  14 152                ANT DLY  20 ns
- 27  57  60   82   * 4  26 191                Position ________________________
+Tracking: 1        Not Tracking: 7            UTC      00:43:18     14 Feb 2006
+PRN  El  Az   SS   PRN  El  Az  PRN  El  Az   1PPS CLK Synchronized to UTC
+  9  36 227   55     2  23 147  *30  25 309   ANT DLY  20 ns
+                     4  17 188                Position ________________________
                    * 7  Acq .                 MODE     Hold
-                   * 8  76 155                
-                   *16  Acq .                 LAT      N  40:
-                    30  17 307                LON      W  76:
+                   * 8  Acq .
+                   *16  26  68                LAT      N  40
+                   *27  48  52                LON      W  76
 ELEV MASK 10 deg   *attempting to track       HGT              +158.38 m  (MSL)
 HEALTH MONITOR ......................................................... [ OK ]
-Self Test: OK    Int Pwr: OK   Oven Pwr: OK   OCXO: OK   EFC: OK   GPS Rcv: OK 
+Self Test: OK    Int Pwr: OK   Oven Pwr: OK   OCXO: OK   EFC: OK   GPS Rcv: OK
 ```
 
 ## PTP
